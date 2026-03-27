@@ -1,0 +1,85 @@
+.playerList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  overflow-y: auto;
+  padding: var(--space-sm);
+}
+
+.playerItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+  animation: slideInRight 0.3s ease;
+}
+
+.playerItem.isDrawing {
+  border-color: var(--accent-primary);
+  background: rgba(124, 92, 252, 0.1);
+}
+
+.playerItem.hasGuessed {
+  border-color: var(--accent-green);
+  background: rgba(74, 222, 128, 0.1);
+}
+
+.playerItem.isMe {
+  border-color: var(--accent-secondary);
+}
+
+.rank {
+  font-size: var(--font-sm);
+  font-weight: 700;
+  color: var(--text-muted);
+  min-width: 20px;
+}
+
+.rank.first { color: #ffd700; }
+.rank.second { color: #c0c0c0; }
+.rank.third { color: #cd7f32; }
+
+.avatar {
+  font-size: 1.4rem;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+}
+
+.status.drawing { color: var(--accent-primary); }
+.status.guessed { color: var(--accent-green); }
+
+.score {
+  font-size: var(--font-md);
+  font-weight: 700;
+  color: var(--accent-orange);
+  min-width: 40px;
+  text-align: right;
+}
+
+.title {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  font-weight: 600;
+  padding: 0 var(--space-sm);
+  margin-bottom: var(--space-xs);
+}

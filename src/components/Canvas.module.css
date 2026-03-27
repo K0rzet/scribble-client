@@ -1,0 +1,39 @@
+.canvasWrapper {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--border-color);
+  overflow: hidden;
+}
+
+.canvasWrapper.isDrawer {
+  border-color: var(--accent-primary);
+  box-shadow: inset 0 0 30px rgba(124, 92, 252, 0.1);
+}
+
+.canvas {
+  background: #ffffff;
+  cursor: crosshair;
+  touch-action: none;
+  border-radius: var(--radius-md);
+}
+
+.canvasWrapper:not(.isDrawer) .canvas {
+  cursor: default;
+}
+
+.watermark {
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  font-size: var(--font-xs);
+  color: rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+  font-weight: 600;
+}

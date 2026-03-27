@@ -1,0 +1,110 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.colorPalette {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+  max-width: 260px;
+}
+
+.colorBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.colorBtn:hover {
+  transform: scale(1.15);
+}
+
+.colorBtn.active {
+  border-color: white;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
+}
+
+.separator {
+  width: 1px;
+  height: 30px;
+  background: var(--border-color);
+  margin: 0 var(--space-xs);
+}
+
+.sizeSlider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.sizeLabel {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  min-width: 24px;
+  text-align: center;
+}
+
+.slider {
+  width: 80px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  outline: none;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  cursor: pointer;
+}
+
+.toolBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  transition: all var(--transition-fast);
+}
+
+.toolBtn:hover {
+  border-color: var(--accent-primary);
+  background: rgba(124, 92, 252, 0.1);
+}
+
+.toolBtn.active {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+}
+
+.actionBtn {
+  composes: toolBtn;
+}
+
+.actionBtn:hover {
+  border-color: var(--accent-secondary);
+}

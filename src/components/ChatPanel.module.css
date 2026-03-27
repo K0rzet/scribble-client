@@ -1,0 +1,109 @@
+.chatPanel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.title {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  font-weight: 600;
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.message {
+  padding: 4px var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-sm);
+  animation: fadeIn 0.2s ease;
+  word-break: break-word;
+}
+
+.message.system {
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+  font-size: var(--font-xs);
+  padding: 2px;
+}
+
+.message.correct {
+  background: rgba(74, 222, 128, 0.15);
+  color: var(--accent-green);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.message.close {
+  color: var(--accent-orange);
+}
+
+.msgAuthor {
+  font-weight: 700;
+  margin-right: 4px;
+}
+
+.msgAuthor.system {
+  color: var(--accent-secondary);
+}
+
+.inputRow {
+  display: flex;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border-top: 1px solid var(--border-color);
+}
+
+.chatInput {
+  flex: 1;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: var(--font-sm);
+  outline: none;
+}
+
+.chatInput:focus {
+  border-color: var(--accent-primary);
+}
+
+.chatInput:disabled {
+  opacity: 0.5;
+}
+
+.sendBtn {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--accent-primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-size: var(--font-sm);
+  transition: all var(--transition-fast);
+}
+
+.sendBtn:hover {
+  background: #6b4ce6;
+}
+
+.sendBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -1,0 +1,49 @@
+.timerWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.timerCircle {
+  width: 56px;
+  height: 56px;
+  position: relative;
+}
+
+.timerSvg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.timerBg {
+  fill: none;
+  stroke: var(--bg-tertiary);
+  stroke-width: 4;
+}
+
+.timerProgress {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear, stroke 0.3s ease;
+}
+
+.timerProgress.safe { stroke: var(--accent-green); }
+.timerProgress.warning { stroke: var(--accent-orange); }
+.timerProgress.danger { stroke: var(--accent-red); }
+
+.timerText {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-lg);
+  font-weight: 800;
+}
+
+.timerText.safe { color: var(--accent-green); }
+.timerText.warning { color: var(--accent-orange); }
+.timerText.danger { color: var(--accent-red); animation: pulse 0.5s infinite; }

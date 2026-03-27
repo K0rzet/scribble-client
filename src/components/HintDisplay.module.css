@@ -1,0 +1,36 @@
+.hintDisplay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  min-height: 48px;
+}
+
+.hintText {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  letter-spacing: 4px;
+  font-family: 'Courier New', monospace;
+  color: var(--text-primary);
+}
+
+.wordText {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+.stateText {
+  font-size: var(--font-md);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.roundInfo {
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+}
