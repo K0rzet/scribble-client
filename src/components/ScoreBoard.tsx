@@ -9,7 +9,9 @@ import styles from './ScoreBoard.module.css';
 
 interface RoundEndData {
   word: string;
+  category?: string;
   players: Player[];
+  scoreDeltas?: Record<string, number>;
 }
 
 interface GameEndData {
@@ -31,7 +33,6 @@ export default function ScoreBoard() {
 
     const handleRoundEnd = (data: RoundEndData) => {
       setRoundEnd(data);
-      // Show interstitial ad between rounds
       showInterstitialAd().catch(() => {});
     };
 
@@ -58,14 +59,12 @@ export default function ScoreBoard() {
     };
   }, [socket, showInterstitialAd, gameState?.state]);
 
-  // Clear on state change to choosing
   useEffect(() => {
     if (gameState?.state === 'choosing' || gameState?.state === 'drawing') {
       setRoundEnd(null);
     }
   }, [gameState?.state]);
 
-  // Navigate back to lobby on game end
   useEffect(() => {
     if (gameState?.state === 'waiting' && gameEnd) {
       const timer = setTimeout(() => {
@@ -123,6 +122,11 @@ export default function ScoreBoard() {
           <div className={styles.word}>
             Слово: {roundEnd.word}
           </div>
+          {roundEnd.category && (
+            <div className={styles.wordCategory}>
+              📁 Категория: {roundEnd.category}
+            </div>
+          )}
 
           <div className={styles.scores}>
             {sorted.slice(0, 5).map((player, i) => (
@@ -132,6 +136,11 @@ export default function ScoreBoard() {
                   {AVATARS[player.avatarIndex] || '🎨'} {player.name}
                 </span>
                 <span className={styles.scoreValue}>{player.score}</span>
+                {roundEnd.scoreDeltas?.[player.id] && (
+                  <span className={styles.scoreDelta}>
+                    +{roundEnd.scoreDeltas[player.id]}
+                  </span>
+                )}
               </div>
             ))}
           </div>
