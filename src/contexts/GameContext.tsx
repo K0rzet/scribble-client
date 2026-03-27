@@ -31,6 +31,11 @@ export interface DrawAction {
   fillColor?: string;
 }
 
+export interface WordEntry {
+  word: string;
+  category: string;
+}
+
 export interface GameState {
   id: string;
   state: 'waiting' | 'choosing' | 'drawing' | 'roundEnd' | 'gameEnd';
@@ -40,6 +45,7 @@ export interface GameState {
   drawerId: string;
   hint: string;
   currentWord?: string;
+  currentCategory?: string;
   timeLeft: number;
   settings: {
     maxPlayers: number;
@@ -56,7 +62,7 @@ interface GameContextType {
   myPlayerId: string;
   myPlayerName: string;
   roomId: string;
-  wordChoices: string[];
+  wordChoices: WordEntry[];
   isDrawer: boolean;
   setMyPlayerName: (name: string) => void;
   createRoom: (name: string) => Promise<{ success: boolean; roomId?: string; error?: string }>;
@@ -101,18 +107,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return localStorage.getItem('scribble-name') || '';
   });
   const [roomId, setRoomId] = useState('');
-  const [wordChoices, setWordChoices] = useState<string[]>([]);
+  const [wordChoices, setWordChoices] = useState<WordEntry[]>([]);
 
   const isDrawer = gameState?.drawerId === myPlayerId;
 
-  // Save name to localStorage
   useEffect(() => {
     if (myPlayerName) {
       localStorage.setItem('scribble-name', myPlayerName);
     }
   }, [myPlayerName]);
 
-  // Socket event listeners
   useEffect(() => {
     if (!socket) return;
 
@@ -126,7 +130,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setMessages((prev) => [...prev.slice(-99), msg]);
     });
 
-    socket.on('word-choices', (data: { words: string[]; timeLeft: number }) => {
+    socket.on('word-choices', (data: { words: WordEntry[]; timeLeft: number }) => {
       setWordChoices(data.words);
     });
 
