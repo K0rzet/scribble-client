@@ -7,7 +7,6 @@ export default function ChatPanel() {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -24,7 +23,7 @@ export default function ChatPanel() {
 
   return (
     <div className={styles.chatPanel}>
-      <div className={styles.title}>💬 Чат</div>
+      <div className={styles.title}>✏️ Чат</div>
 
       <div className={styles.messages}>
         {messages.map((msg) => (
@@ -49,7 +48,7 @@ export default function ChatPanel() {
             ) : msg.type === 'close' ? (
               <span>
                 <span className={styles.msgAuthor}>{msg.playerName}:</span>
-                {msg.text} — <em>Близко!</em>
+                <em>Близко!</em>
               </span>
             ) : (
               <span>

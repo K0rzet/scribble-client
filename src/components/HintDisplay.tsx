@@ -5,13 +5,19 @@ export default function HintDisplay() {
   const { gameState, isDrawer } = useGame();
   if (!gameState) return null;
 
-  const { state, hint, currentWord } = gameState;
+  const { state, hint, currentWord, currentCategory } = gameState;
 
   return (
     <div className={styles.hintDisplay}>
       <span className={styles.roundInfo}>
         Раунд {gameState.currentRound + 1}/{gameState.totalRounds}
       </span>
+
+      {currentCategory && state === 'drawing' && (
+        <span className={styles.categoryBadge}>
+          📁 {currentCategory}
+        </span>
+      )}
 
       {state === 'drawing' && (
         <>
@@ -27,7 +33,7 @@ export default function HintDisplay() {
 
       {state === 'choosing' && (
         <span className={styles.stateText}>
-          {isDrawer ? '🎯 Выберите слово...' : '⏳ Рисующий выбирает слово...'}
+          {isDrawer ? '✏️ Выберите слово...' : '⏳ Рисующий выбирает слово...'}
         </span>
       )}
 
