@@ -1,14 +1,12 @@
 .timerWrapper {
   display: flex;
   align-items: center;
-  justify-content: center;
-  position: relative;
 }
 
 .timerCircle {
-  width: 56px;
-  height: 56px;
   position: relative;
+  width: 52px;
+  height: 52px;
 }
 
 .timerSvg {
@@ -21,18 +19,31 @@
   fill: none;
   stroke: var(--bg-tertiary);
   stroke-width: 4;
+  stroke-dasharray: none;
 }
 
 .timerProgress {
   fill: none;
   stroke-width: 4;
   stroke-linecap: round;
-  transition: stroke-dashoffset 1s linear, stroke 0.3s ease;
+  transition: stroke-dashoffset 1s linear;
 }
 
-.timerProgress.safe { stroke: var(--accent-green); }
-.timerProgress.warning { stroke: var(--accent-orange); }
-.timerProgress.danger { stroke: var(--accent-red); }
+.timerProgress.safe {
+  stroke: var(--chalk-green);
+  filter: drop-shadow(0 0 4px rgba(119, 221, 119, 0.3));
+}
+
+.timerProgress.warning {
+  stroke: var(--chalk-yellow);
+  filter: drop-shadow(0 0 4px rgba(255, 216, 102, 0.3));
+}
+
+.timerProgress.danger {
+  stroke: var(--chalk-red);
+  filter: drop-shadow(0 0 6px rgba(255, 107, 107, 0.4));
+  animation: pulse 0.8s infinite;
+}
 
 .timerText {
   position: absolute;
@@ -40,10 +51,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--font-lg);
-  font-weight: 800;
+  font-family: var(--font-sketch);
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-shadow: var(--shadow-chalk);
 }
 
-.timerText.safe { color: var(--accent-green); }
-.timerText.warning { color: var(--accent-orange); }
-.timerText.danger { color: var(--accent-red); animation: pulse 0.5s infinite; }
+.timerText.safe { color: var(--chalk-green); }
+.timerText.warning { color: var(--chalk-yellow); }
+.timerText.danger { color: var(--chalk-red); }
