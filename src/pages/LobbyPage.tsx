@@ -8,7 +8,7 @@ import styles from './LobbyPage.module.css';
 const ALL_MODES: { key: GameMode; name: string; icon: string; desc: string }[] = [
   { key: 'classic', name: 'Классика', icon: '🎨', desc: 'Один рисует, все угадывают' },
   { key: 'gallery', name: 'Оценка', icon: '🖼️', desc: 'Все рисуют, голосуют за лучший' },
-  { key: 'spy', name: 'Шпион', icon: '🕵️', desc: 'Найдите кто не знает слово' },
+  { key: 'spy', name: 'Шпион', icon: '🕵️', desc: 'Все рисуют по очереди, потом голосуют' },
   { key: 'telephone', name: 'Телефон', icon: '📞', desc: 'Испорченный телефон рисунками' },
   { key: 'speed', name: 'Быстрый', icon: '⚡', desc: 'Максимум слов за 2 минуты' },
   { key: 'reveal', name: 'По частям', icon: '🧩', desc: 'Картинка открывается постепенно' },
@@ -79,7 +79,27 @@ export default function LobbyPage() {
         : players.length >= 2;
   const maxPlayersOptions =
     currentMode === 'spy' ? [3, 4, 5, 6, 8, 10] : [2, 3, 4, 5, 6, 8, 10];
+  const drawTimeOptions =
+    currentMode === 'spy'
+      ? [5, 8, 10, 12, 15, 20, 30, 45, 60]
+      : [30, 45, 60, 75, 90, 120, 150];
   const maxSpyCount = Math.max(1, maxPlayers - 2);
+  const selectedWordBankIds = gameState?.settings.wordBankIds?.length
+    ? gameState.settings.wordBankIds
+    : ['all'];
+  const isAllWordBanksSelected = selectedWordBankIds.includes('all');
+
+  const handleWordBankAllToggle = () => {
+    updateSettings({ wordBankIds: ['all'] });
+  };
+
+  const handleWordBankToggle = (bankId: string) => {
+    const current = selectedWordBankIds.filter((id) => id !== 'all');
+    const hasBank = current.includes(bankId);
+
+    const next = hasBank ? current.filter((id) => id !== bankId) : [...current, bankId];
+    updateSettings({ wordBankIds: next.length > 0 ? next : ['all'] });
+  };
 
   return (
     <div className={styles.lobbyPage}>
@@ -194,7 +214,9 @@ export default function LobbyPage() {
                 </select>
               </div>
               <div className={styles.settingItem}>
-                <label className={styles.settingLabel}>Время (сек)</label>
+                <label className={styles.settingLabel}>
+                  {currentMode === 'spy' ? 'Время хода (сек)' : 'Время (сек)'}
+                </label>
                 <select
                   className={styles.settingSelect}
                   value={gameState?.settings.drawTime || 90}
@@ -202,7 +224,7 @@ export default function LobbyPage() {
                     updateSettings({ drawTime: Number(e.target.value) })
                   }
                 >
-                  {[30, 45, 60, 75, 90, 120, 150].map((n) => (
+                  {drawTimeOptions.map((n) => (
                     <option key={n} value={n}>
                       {n} сек
                     </option>
@@ -253,22 +275,22 @@ export default function LobbyPage() {
                 <div className={styles.wordBankList}>
                   <label className={styles.bankOption}>
                     <input
-                      type="radio"
-                      name="wordBank"
+                      type="checkbox"
+                      name="wordBankAll"
                       value="all"
-                      checked={!gameState?.settings.wordBankIds || gameState?.settings.wordBankIds.includes('all')}
-                      onChange={() => updateSettings({ wordBankIds: ['all'] })}
+                      checked={isAllWordBanksSelected}
+                      onChange={handleWordBankAllToggle}
                     />
                     <span>🌐 Все слова</span>
                   </label>
                   {wordBanks.map((bank) => (
                     <label key={bank.id} className={styles.bankOption}>
                       <input
-                        type="radio"
-                        name="wordBank"
+                        type="checkbox"
+                        name={`wordBank-${bank.id}`}
                         value={bank.id}
-                        checked={gameState?.settings.wordBankIds?.includes(bank.id) && !gameState?.settings.wordBankIds?.includes('all')}
-                        onChange={() => updateSettings({ wordBankIds: [bank.id] })}
+                        checked={!isAllWordBanksSelected && selectedWordBankIds.includes(bank.id)}
+                        onChange={() => handleWordBankToggle(bank.id)}
                       />
                       <span>{bank.name} ({bank.wordCount} слов, {bank.categoryCount} кат.)</span>
                     </label>

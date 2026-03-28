@@ -42,8 +42,9 @@ export default function GamePage() {
     myPlayerId,
     spyRole,
     spyWord,
-    revealDrawing,
-    revealDrawWord,
+    spyCategory,
+    revealImageUrl,
+    revealedTiles,
   } = useGame();
   const { socket } = useSocket();
   const { enabled: soundEnabled, toggle: toggleSound, playSound } = useSound();
@@ -53,6 +54,7 @@ export default function GamePage() {
   const [lineWidth, setLineWidth] = useState(4);
   const [tool, setTool] = useState<'pen' | 'eraser' | 'fill'>('pen');
   const [guessInput, setGuessInput] = useState('');
+  const guessInputRef = useRef<HTMLInputElement>(null);
 
   // Notification state
   const [notification, setNotification] = useState<NotificationData | null>(null);
@@ -164,8 +166,7 @@ export default function GamePage() {
     if (
       gameState?.state === 'drawing' ||
       gameState?.state === 'allDrawing' ||
-      gameState?.state === 'speedDrawing' ||
-      gameState?.state === 'revealDraw'
+      gameState?.state === 'speedDrawing'
     ) {
       setColor('#000000');
       setTool('pen');
@@ -237,7 +238,7 @@ export default function GamePage() {
   };
 
   const myPlayer = gameState?.players.find((p) => p.id === myPlayerId);
-  const canType = (gameState?.state === 'drawing' || gameState?.state === 'speedDrawing' || gameState?.state === 'spyGuess') && !isDrawer && !myPlayer?.hasGuessed;
+  const canType = (gameState?.state === 'drawing' || gameState?.state === 'speedDrawing' || gameState?.state === 'spyGuess' || gameState?.state === 'revealing') && !isDrawer && !myPlayer?.hasGuessed;
 
   const hideInput =
     gameState?.state === 'allDrawing' ||
@@ -245,16 +246,34 @@ export default function GamePage() {
     gameState?.state === 'spyVoting' ||
     gameState?.state === 'chainDraw' ||
     gameState?.state === 'chainGuess' ||
-    gameState?.state === 'revealDraw' ||
     (gameState?.state === 'spyGuess' && spyRole !== 'spy');
 
   const { telephoneWord } = useGame();
 
-  const isRevealDraw = gameState?.state === 'revealDraw';
-  const isRevealing = gameState?.state === 'revealing';
+  const isRevealing   = gameState?.state === 'revealing';
   const revealProgress = gameState?.revealProgress ?? 0;
-  const revealHint = gameState?.hint ?? '';
+  const revealHint    = gameState?.hint ?? '';
   const revealCategory = gameState?.currentCategory ?? '';
+
+  // Clear guess input whenever round/state changes
+  useEffect(() => {
+    setGuessInput('');
+  }, [gameState?.currentRound, gameState?.state, gameState?.drawerId]);
+
+  // Keep input focused for fast gameplay (after round transitions too)
+  useEffect(() => {
+    const shouldFocus =
+      (gameState?.state === 'drawing' ||
+        gameState?.state === 'speedDrawing' ||
+        gameState?.state === 'revealing' ||
+        gameState?.state === 'spyGuess') &&
+      !isDrawer &&
+      !myPlayer?.hasGuessed;
+
+    if (!shouldFocus) return;
+    const t = setTimeout(() => guessInputRef.current?.focus(), 30);
+    return () => clearTimeout(t);
+  }, [gameState?.state, gameState?.currentRound, gameState?.drawerId, isDrawer, myPlayer?.hasGuessed]);
 
   if (!gameState) {
     return (
@@ -289,9 +308,17 @@ export default function GamePage() {
           ) : gameState.state === 'spyDrawing' || gameState.state === 'spyVoting' || gameState.state === 'spyGuess' ? (
             <div className={styles.galleryWordDisplay}>
               {spyRole === 'spy' ? (
-                <span className={styles.galleryWordHighlight} style={{ color: '#ff4d4f' }}>
-                  ВЫ ШПИОН!
-                </span>
+                <>
+                  <span className={styles.galleryWordHighlight} style={{ color: '#ff4d4f' }}>
+                    ВЫ ШПИОН
+                  </span>
+                  {spyCategory ? (
+                    <>
+                      {' '}Тема:{' '}
+                      <span className={styles.galleryWordHighlight}>{spyCategory}</span>
+                    </>
+                  ) : null}
+                </>
               ) : (
                 <>
                   Слово:{' '}
@@ -317,22 +344,9 @@ export default function GamePage() {
                 <>Испорченный телефон: цепочка угадывает</>
               )}
             </div>
-          ) : gameState.state === 'revealDraw' ? (
-            <div className={styles.galleryWordDisplay}>
-              {isDrawer ? (
-                <>
-                  🎨 Нарисуйте:{' '}
-                  <span className={styles.galleryWordHighlight}>
-                    {revealDrawWord || (gameState as any).currentWord || '...'}
-                  </span>
-                </>
-              ) : (
-                <>🧩 Ожидание рисунка... Скоро угадываем!</>
-              )}
-            </div>
           ) : gameState.state === 'revealing' ? (
             <div className={styles.galleryWordDisplay}>
-              🧩 Угадай по частям{gameState.players.length > 1 ? '' : ' (одиночный)'}
+              🧩 Угадай по частям
             </div>
           ) : (
             <HintDisplay />
@@ -359,33 +373,18 @@ export default function GamePage() {
 
         {/* Center — Canvas + Toolbar + Input */}
         <div className={styles.center}>
-          {/* ── Reveal mode: revealDraw phase ───────────────── */}
-          {isRevealDraw && !isDrawer && (
-            <div className={styles.revealWaitOverlay}>
-              <div className={styles.revealWaitEmoji}>🎨</div>
-              <div className={styles.revealWaitTitle}>
-                {gameState.players.find(p => p.id === gameState.drawerId)?.name || 'Игрок'} рисует...
-              </div>
-              <div className={styles.revealWaitSub}>
-                Рисунок скрыт — вы угадаете его по частям!
-              </div>
-            </div>
-          )}
-
-          {/* ── Reveal mode: revealing phase ─────────────────── */}
+          {/* ── Reveal mode: tile-based image reveal ─────────── */}
           {isRevealing ? (
             <RevealCanvas
-              imageUrl={revealDrawing}
+              imageUrl={revealImageUrl}
+              revealedTiles={revealedTiles}
               progress={revealProgress}
               hint={revealHint}
               category={revealCategory}
-              isMyDrawing={isDrawer && !!revealDrawing}
             />
           ) : (
             /* ── All other modes: regular canvas ─────────────── */
-            (!isRevealDraw || isDrawer) && (
-              <Canvas color={color} lineWidth={lineWidth} tool={tool} />
-            )
+            <Canvas color={color} lineWidth={lineWidth} tool={tool} />
           )}
 
           {/* Toolbar: only for drawing phases */}
@@ -412,13 +411,11 @@ export default function GamePage() {
           )}
           {/* Guess input at bottom — also shown during revealing for non-drawers
               and for single-player mode (no drawer) */}
-          {(isRevealing
-            ? (!isDrawer || !revealDrawing) // guessers + solo player
-            : !isDrawer && !hideInput
-          ) && (
+          {(isRevealing ? !myPlayer?.hasGuessed : !isDrawer && !hideInput) && (
             <div className={styles.guessInputWrapper}>
               <input
                 id="guess-input"
+                ref={guessInputRef}
                 type="text"
                 className={styles.guessInput}
                 placeholder={

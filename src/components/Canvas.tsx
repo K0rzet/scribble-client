@@ -41,8 +41,7 @@ export default function Canvas({ color, lineWidth, tool }: CanvasProps) {
     }
   }, [gameState?.timeLeft, gameState?.state, gameState?.currentRound]);
 
-  const isGalleryMode = gameState?.state === 'allDrawing' || gameState?.state === 'spyDrawing'
-    || (gameState?.state === 'revealDraw' && isDrawer);
+  const isGalleryMode = gameState?.state === 'allDrawing';
   const isTelephoneDraw = gameState?.state === 'chainDraw' && isDrawer;
   
   const showReadyButton = (isGalleryMode || isTelephoneDraw) && !isReady;
@@ -51,13 +50,11 @@ export default function Canvas({ color, lineWidth, tool }: CanvasProps) {
   useEffect(() => {
     if (
       gameState?.state !== 'allDrawing' &&
-      gameState?.state !== 'chainDraw' &&
-      gameState?.state !== 'spyDrawing' &&
-      !(gameState?.state === 'revealDraw' && isDrawer)
+      gameState?.state !== 'chainDraw'
     ) {
       setIsReady(false);
     }
-  }, [gameState?.state, isDrawer]);
+  }, [gameState?.state]);
 
   const handleSubmitDrawing = useCallback(() => {
     if (isReady || !canvasRef.current) return;
@@ -552,8 +549,6 @@ export default function Canvas({ color, lineWidth, tool }: CanvasProps) {
     if (
       gameState?.state === 'chainDraw' ||
       gameState?.state === 'allDrawing' ||
-      gameState?.state === 'spyDrawing' ||
-      gameState?.state === 'revealDraw' ||
       gameState?.state === 'roundEnd' ||
       gameState?.state === 'choosing' ||
       gameState?.state === 'waiting'
@@ -668,15 +663,13 @@ export default function Canvas({ color, lineWidth, tool }: CanvasProps) {
           className={styles.galleryReadyBtn}
           onClick={handleSubmitDrawing}
         >
-          {gameState?.state === 'revealDraw' ? '🎨 Отправить рисунок' : 'Готов!'}
+          Готов!
         </button>
       )}
       
       {showReadyOverlay && (
         <div className={styles.galleryReadyOverlay}>
-          {gameState?.state === 'revealDraw'
-            ? '🎨 Рисунок отправлен! Начинается угадывание...'
-            : '☑️ Рисунок отправлен. Ожидаем...'}
+          ☑️ Рисунок отправлен. Ожидаем...
         </div>
       )}
 

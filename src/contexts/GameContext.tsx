@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { useSocket } from './SocketContext';
+import { SERVER_URL } from '../config';
 
 export type GameMode = 'classic' | 'gallery' | 'spy' | 'telephone' | 'speed' | 'reveal';
 
@@ -112,6 +113,8 @@ export interface GameState {
   drawActions: DrawAction[];
   speedWordsGuessed?: number;
   revealProgress?: number;
+  revealedTiles?: number[];
+  revealImageUrl?: string;
   galleryReadyIds?: string[];
   galleryVotedIds?: string[];
 }
@@ -157,6 +160,7 @@ interface GameContextType {
   // Spy Mode
   spyRole?: 'spy' | 'player';
   spyWord?: string;
+  spyCategory?: string;
   submitSpyVote: (suspectId: string) => void;
   // Telephone Mode
   telephoneWord?: string;
@@ -164,8 +168,8 @@ interface GameContextType {
   submitTelephoneDrawing: (dataUrl: string) => void;
   submitTelephoneGuess: (text: string) => void;
   // Reveal Mode
-  revealDrawing: string;
-  revealDrawWord: string;
+  revealImageUrl: string;
+  revealedTiles: number[];
 }
 
 const GameContext = createContext<GameContextType>({
@@ -194,10 +198,11 @@ const GameContext = createContext<GameContextType>({
   submitGalleryDrawing: () => {},
   submitGalleryVote: () => {},
   submitSpyVote: () => {},
+  spyCategory: undefined,
   submitTelephoneDrawing: () => {},
   submitTelephoneGuess: () => {},
-  revealDrawing: '',
-  revealDrawWord: '',
+  revealImageUrl: '',
+  revealedTiles: [],
 });
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
@@ -216,14 +221,25 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   // Spy Mode State
   const [spyRole, setSpyRole] = useState<'spy' | 'player'>();
   const [spyWord, setSpyWord] = useState<string>();
+  const [spyCategory, setSpyCategory] = useState<string>();
 
   // Telephone Mode State
   const [telephoneWord, setTelephoneWord] = useState<string>();
   const [telephoneImage, setTelephoneImage] = useState<string>();
 
   // Reveal Mode State
-  const [revealDrawing, setRevealDrawing] = useState<string>(''); // base64 image
-  const [revealDrawWord, setRevealDrawWord] = useState<string>(''); // word for drawer in revealDraw
+  const [revealImageUrl, setRevealImageUrl] = useState<string>('');
+  const [revealedTiles, setRevealedTiles] = useState<number[]>([]);
+
+  const toRevealImageUrl = useCallback((url: string): string => {
+    if (!url) return '';
+    // Room can send either direct URL or server endpoint path.
+    if (url.startsWith('/api/reveal-image')) return `${SERVER_URL}${url}`;
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return `${SERVER_URL}/api/reveal-image?src=${encodeURIComponent(url)}`;
+    }
+    return url;
+  }, []);
 
   const myPlayer = gameState?.players.find((p) => p.id === myPlayerId);
   const isDrawer = gameState?.drawerId === 'all'
@@ -253,10 +269,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         setGalleryDrawings([]);
       }
 
-      // Clear reveal drawing when leaving reveal phases
-      if (state.state !== 'revealing' && state.state !== 'revealDraw') {
-        setRevealDrawing('');
-        setRevealDrawWord('');
+      // Sync reveal tiles from server state (for reconnect)
+      if (state.state === 'revealing') {
+        if (state.revealImageUrl) setRevealImageUrl(toRevealImageUrl(state.revealImageUrl));
+        if (state.revealedTiles)  setRevealedTiles(state.revealedTiles);
+      } else {
+        setRevealImageUrl('');
+        setRevealedTiles([]);
       }
     });
 
@@ -286,9 +305,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setGalleryDrawings(data.drawings);
     });
 
-    socket.on('spy-role', (data: { role: 'spy' | 'player'; word: string | null }) => {
+    socket.on('spy-role', (data: { role: 'spy' | 'player'; word: string | null; category?: string }) => {
       setSpyRole(data.role);
       setSpyWord(data.word || undefined);
+      setSpyCategory(data.category || undefined);
     });
 
     socket.on('spy-vote-start', (data: { timeLeft: number; drawings: GalleryDrawing[] }) => {
@@ -303,12 +323,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setTelephoneImage(data.dataUrl);
     });
 
-    socket.on('reveal-start', (data: { imageUrl: string; hint: string; category: string; timeLeft: number }) => {
-      setRevealDrawing(data.imageUrl || '');
+    socket.on('reveal-start', (data: { imageUrl: string; revealedTiles: number[]; totalTiles: number }) => {
+      setRevealImageUrl(toRevealImageUrl(data.imageUrl || ''));
+      setRevealedTiles(data.revealedTiles || []);
     });
 
-    socket.on('reveal-draw-start', (data: { word: string; category: string; timeLeft: number }) => {
-      setRevealDrawWord(data.word);
+    socket.on('reveal-tile', (data: { revealedTiles: number[]; progress: number; hint: string }) => {
+      setRevealedTiles([...data.revealedTiles]);
     });
 
     socket.on('connect', () => {
@@ -328,10 +349,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       socket.off('telephone-draw');
       socket.off('telephone-guess');
       socket.off('reveal-start');
-      socket.off('reveal-draw-start');
+      socket.off('reveal-tile');
       socket.off('connect');
     };
-  }, [socket]);
+  }, [socket, toRevealImageUrl]);
 
   const createRoom = useCallback(
     async (name: string, settings?: any): Promise<{ success: boolean; roomId?: string; error?: string }> => {
@@ -433,7 +454,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const clearCanvas = useCallback(() => {
     if (!socket) return;
-    if (gameState?.state === 'allDrawing' || gameState?.state === 'chainDraw' || gameState?.state === 'spyDrawing' || gameState?.state === 'revealDraw') {
+    if (gameState?.state === 'allDrawing' || gameState?.state === 'chainDraw') {
       window.dispatchEvent(new Event('local-clear'));
     } else {
       socket.emit('clear-canvas');
@@ -442,7 +463,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const undoDraw = useCallback(() => {
     if (!socket) return;
-    if (gameState?.state === 'allDrawing' || gameState?.state === 'chainDraw' || gameState?.state === 'spyDrawing' || gameState?.state === 'revealDraw') {
+    if (gameState?.state === 'allDrawing' || gameState?.state === 'chainDraw') {
       window.dispatchEvent(new Event('local-undo'));
     } else {
       socket.emit('undo-draw');
@@ -535,13 +556,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         submitGalleryVote,
         spyRole,
         spyWord,
+        spyCategory,
         submitSpyVote,
         telephoneWord,
         telephoneImage,
         submitTelephoneDrawing,
         submitTelephoneGuess,
-        revealDrawing,
-        revealDrawWord,
+        revealImageUrl,
+        revealedTiles,
       }), [
         gameState,
         messages,
@@ -568,13 +590,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         submitGalleryVote,
         spyRole,
         spyWord,
+        spyCategory,
         submitSpyVote,
         telephoneWord,
         telephoneImage,
         submitTelephoneDrawing,
         submitTelephoneGuess,
-        revealDrawing,
-        revealDrawWord,
+        revealImageUrl,
+        revealedTiles,
       ])}
     >
       {children}
