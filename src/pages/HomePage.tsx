@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../contexts/SocketContext';
 import { useGame } from '../contexts/GameContext';
+import type { GameMode } from '../contexts/GameContext';
 import { useYandexSDK } from '../contexts/YandexSDKContext';
 import styles from './HomePage.module.css';
 
@@ -11,7 +12,35 @@ interface RoomInfo {
   maxPlayers: number;
   state: string;
   hostName: string;
+  mode: GameMode;
+  modeName: string;
+  currentRound: number;
+  totalRounds: number;
 }
+
+const MODE_ICONS: Record<GameMode, string> = {
+  classic: '🎨',
+  gallery: '🖼️',
+  spy: '🕵️',
+  telephone: '📞',
+  speed: '⚡',
+  reveal: '🧩',
+};
+
+const STATE_LABELS: Record<string, { label: string; class: string }> = {
+  waiting: { label: 'В лобби', class: 'stateWaiting' },
+  choosing: { label: 'Играют', class: 'statePlaying' },
+  drawing: { label: 'Играют', class: 'statePlaying' },
+  roundEnd: { label: 'Играют', class: 'statePlaying' },
+  allDrawing: { label: 'Играют', class: 'statePlaying' },
+  voting: { label: 'Играют', class: 'statePlaying' },
+  spyDrawing: { label: 'Играют', class: 'statePlaying' },
+  spyVoting: { label: 'Играют', class: 'statePlaying' },
+  chainDraw: { label: 'Играют', class: 'statePlaying' },
+  chainGuess: { label: 'Играют', class: 'statePlaying' },
+  speedDrawing: { label: 'Играют', class: 'statePlaying' },
+  revealing: { label: 'Играют', class: 'statePlaying' },
+};
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -82,7 +111,13 @@ export default function HomePage() {
     setLoading(false);
 
     if (result.success) {
-      navigate(`/lobby/${code}`);
+      // If room is playing, go directly to game
+      const room = rooms.find(r => r.id === code);
+      if (room && room.state !== 'waiting') {
+        navigate(`/game/${code}`);
+      } else {
+        navigate(`/lobby/${code}`);
+      }
     } else {
       setError(result.error || 'Не удалось войти в комнату');
     }
@@ -156,29 +191,54 @@ export default function HomePage() {
           {error && <div className={styles.error}>{error}</div>}
         </div>
 
-        {/* Room List */}
+        {/* Room List — Enhanced */}
         {rooms.length > 0 && (
           <div className={styles.roomList}>
             <div className={styles.roomListTitle}>
               🎮 Открытые комнаты ({rooms.length})
             </div>
-            {rooms.map((room) => (
-              <div
-                key={room.id}
-                className={styles.roomItem}
-                onClick={() => handleJoinRoom(room.id)}
-              >
-                <div className={styles.roomInfo}>
-                  <span className={styles.roomHost}>
-                    {room.hostName}
-                  </span>
-                  <span className={styles.roomPlayers}>
-                    {room.playerCount}/{room.maxPlayers} игроков
-                  </span>
+            {rooms.map((room) => {
+              const stateInfo = STATE_LABELS[room.state] || { label: room.state, class: 'stateWaiting' };
+              return (
+                <div
+                  key={room.id}
+                  className={styles.roomItem}
+                  onClick={() => handleJoinRoom(room.id)}
+                >
+                  <div className={styles.roomLeft}>
+                    <span className={styles.roomModeIcon}>
+                      {MODE_ICONS[room.mode] || '🎮'}
+                    </span>
+                    <div className={styles.roomInfo}>
+                      <div className={styles.roomTopLine}>
+                        <span className={styles.roomHost}>{room.hostName}</span>
+                        <span className={`${styles.roomState} ${styles[stateInfo.class]}`}>
+                          {stateInfo.label}
+                        </span>
+                      </div>
+                      <div className={styles.roomBottomLine}>
+                        <span className={styles.roomMode}>{room.modeName}</span>
+                        <span className={styles.roomDot}>•</span>
+                        <span className={styles.roomPlayers}>
+                          👥 {room.playerCount}/{room.maxPlayers}
+                        </span>
+                        {room.state !== 'waiting' && (
+                          <>
+                            <span className={styles.roomDot}>•</span>
+                            <span className={styles.roomRound}>
+                              Раунд {room.currentRound + 1}/{room.totalRounds}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <button className={styles.roomJoinBtn}>
+                    {room.state === 'waiting' ? 'Войти' : 'Присоединиться'}
+                  </button>
                 </div>
-                <button className={styles.roomJoinBtn}>Войти</button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

@@ -13,17 +13,17 @@ export default function HintDisplay() {
         Раунд {gameState.currentRound + 1}/{gameState.totalRounds}
       </span>
 
-      {currentCategory && state === 'drawing' && (
+      {currentCategory && (state === 'drawing' || state === 'speedDrawing') && (
         <span className={styles.categoryBadge}>
           📁 {currentCategory}
         </span>
       )}
 
-      {state === 'drawing' && (
+      {(state === 'drawing' || state === 'speedDrawing') && (
         <>
           {isDrawer ? (
             <span className={styles.wordText}>
-              🎨 Рисуйте: {currentWord}
+              {state === 'speedDrawing' ? '⚡ Рисуйте:' : '🎨 Рисуйте:'} {currentWord}
             </span>
           ) : (
             <span className={styles.hintText}>{hint || '...'}</span>

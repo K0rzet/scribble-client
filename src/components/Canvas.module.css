@@ -25,13 +25,74 @@
 
 .canvas {
   background: #ffffff;
-  cursor: crosshair;
   touch-action: none;
   border-radius: var(--radius-sm);
 }
 
+/* Hide default cursor when custom cursor is active */
+.canvasWrapper.isDrawer .canvas {
+  cursor: none;
+}
+
 .canvasWrapper:not(.isDrawer) .canvas {
   cursor: default;
+}
+
+/* ─── Custom brush cursor ─── */
+.customCursor {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  transition: width 0.08s ease, height 0.08s ease;
+  box-sizing: border-box;
+}
+
+/* Pen cursor: circle outline — dual-ring for visibility on any background */
+.cursorPen {
+  border: 2px solid rgba(0, 0, 0, 0.6);
+  background: transparent;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.7),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+/* Center dot for small sizes */
+.cursorPen::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Eraser cursor: dashed circle */
+.cursorEraser {
+  border: 2px dashed rgba(0, 0, 0, 0.5);
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+/* Fill cursor: bucket icon */
+.cursorFill {
+  border: 2px solid rgba(0, 0, 0, 0.6);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.cursorFill::after {
+  content: '🪣';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  line-height: 1;
 }
 
 .watermark {
@@ -43,4 +104,51 @@
   color: rgba(0, 0, 0, 0.1);
   pointer-events: none;
   font-weight: 600;
+}
+
+.galleryReadyBtn {
+  position: absolute;
+  bottom: var(--space-md);
+  right: var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
+  font-family: var(--font-sketch);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  background: var(--chalk-green);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  box-shadow: var(--shadow-chalk);
+  transition: transform 0.2s ease, filter 0.2s ease;
+  z-index: 20;
+}
+
+.galleryReadyBtn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+.galleryReadyBtn:active {
+  transform: translateY(2px);
+}
+
+.galleryReadyOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sketch);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--chalk-blue);
+  z-index: 15;
+  text-align: center;
+  padding: var(--space-lg);
+  text-shadow: var(--shadow-chalk);
 }

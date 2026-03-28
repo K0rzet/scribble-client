@@ -6,6 +6,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&display=swap');
 
 :root {
+  --ui-font-scale: 1.18;
+  --ui-font-inv: 0.8474576271;
   --bg-primary: #1a1b2e;
   --bg-secondary: #222338;
   --bg-tertiary: #2c2d47;
@@ -78,6 +80,10 @@ html, body, #root {
   width: 100%;
   height: 100%;
   overflow: hidden;
+}
+
+html {
+  font-size: calc(16px * var(--ui-font-scale));
 }
 
 body {

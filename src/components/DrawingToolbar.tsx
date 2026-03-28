@@ -30,6 +30,9 @@ export default function DrawingToolbar({
 
   if (!isDrawer) return null;
 
+  const previewColor = tool === 'eraser' ? '#ffffff' : color;
+  const previewSize = Math.max(4, Math.min(lineWidth, 32));
+
   return (
     <div className={styles.toolbar}>
       {/* Color palette */}
@@ -49,61 +52,82 @@ export default function DrawingToolbar({
 
       <div className={styles.separator} />
 
-      {/* Brush size */}
-      <div className={styles.sizeSlider}>
-        <span className={styles.sizeLabel}>{lineWidth}</span>
-        <input
-          type="range"
-          className={styles.slider}
-          min={1}
-          max={30}
-          value={lineWidth}
-          onChange={(e) => onLineWidthChange(Number(e.target.value))}
-        />
+      {/* Brush preview + size slider */}
+      <div className={styles.sizeSection}>
+        <div className={styles.brushPreview} title={`Размер: ${lineWidth}px`}>
+          <div
+            className={styles.brushDot}
+            style={{
+              width: previewSize,
+              height: previewSize,
+              backgroundColor: previewColor,
+              borderRadius: '50%',
+              border: previewColor === '#ffffff' ? '1.5px solid rgba(0,0,0,0.3)' : 'none',
+            }}
+          />
+        </div>
+        <div className={styles.sizeSlider}>
+          <span className={styles.sizeLabel}>{lineWidth}px</span>
+          <input
+            type="range"
+            className={styles.slider}
+            min={1}
+            max={60}
+            value={lineWidth}
+            onChange={(e) => onLineWidthChange(Number(e.target.value))}
+          />
+        </div>
       </div>
 
       <div className={styles.separator} />
 
       {/* Tools */}
-      <button
-        className={`${styles.toolBtn} ${tool === 'pen' ? styles.active : ''}`}
-        onClick={() => onToolChange('pen')}
-        title="Карандаш"
-      >
-        ✏️
-      </button>
-      <button
-        className={`${styles.toolBtn} ${tool === 'eraser' ? styles.active : ''}`}
-        onClick={() => onToolChange('eraser')}
-        title="Ластик"
-      >
-        🧹
-      </button>
-      <button
-        className={`${styles.toolBtn} ${tool === 'fill' ? styles.active : ''}`}
-        onClick={() => onToolChange('fill')}
-        title="Заливка"
-      >
-        🪣
-      </button>
+      <div className={styles.toolGroup}>
+        <button
+          className={`${styles.toolBtn} ${tool === 'pen' ? styles.active : ''}`}
+          onClick={() => onToolChange('pen')}
+          title="Карандаш (B)"
+        >
+          <span className={styles.toolIcon}>✏️</span>
+          <span className={styles.toolLabel}>Кисть</span>
+        </button>
+        <button
+          className={`${styles.toolBtn} ${tool === 'eraser' ? styles.active : ''}`}
+          onClick={() => onToolChange('eraser')}
+          title="Ластик (E)"
+        >
+          <span className={styles.toolIcon}>🧹</span>
+          <span className={styles.toolLabel}>Ластик</span>
+        </button>
+        <button
+          className={`${styles.toolBtn} ${tool === 'fill' ? styles.active : ''}`}
+          onClick={() => onToolChange('fill')}
+          title="Заливка (G)"
+        >
+          <span className={styles.toolIcon}>🪣</span>
+          <span className={styles.toolLabel}>Заливка</span>
+        </button>
+      </div>
 
       <div className={styles.separator} />
 
       {/* Actions */}
-      <button
-        className={styles.actionBtn}
-        onClick={undoDraw}
-        title="Отменить"
-      >
-        ↩️
-      </button>
-      <button
-        className={styles.actionBtn}
-        onClick={clearCanvas}
-        title="Очистить"
-      >
-        🗑️
-      </button>
+      <div className={styles.actionGroup}>
+        <button
+          className={styles.actionBtn}
+          onClick={undoDraw}
+          title="Отменить (Ctrl+Z)"
+        >
+          ↩️
+        </button>
+        <button
+          className={styles.actionBtn}
+          onClick={clearCanvas}
+          title="Очистить (Delete)"
+        >
+          🗑️
+        </button>
+      </div>
     </div>
   );
 }

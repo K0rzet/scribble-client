@@ -1,0 +1,212 @@
+.votingContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-xl);
+  z-index: 50;
+  overflow-y: auto;
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.title {
+  font-family: var(--font-sketch);
+  font-size: 2.5rem;
+  color: var(--chalk-yellow);
+  text-align: center;
+  margin-bottom: var(--space-sm);
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.timer {
+  font-family: var(--font-sketch);
+  font-size: 2rem;
+  color: var(--chalk-red);
+  text-align: center;
+  margin-bottom: var(--space-xl);
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  animation: pulseTimer 1s infinite alternate;
+}
+
+@keyframes pulseTimer {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.05); }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-xl);
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-bottom: 120px; /* space for submit button */
+}
+
+.card {
+  background: white;
+  border-radius: var(--radius-sm);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+
+.cardSubmitted {
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.myCard {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.imageWrapper {
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.authorName {
+  font-family: var(--font-sketch);
+  font-size: 1.5rem;
+  color: var(--text-dark);
+  margin-top: var(--space-md);
+  font-weight: 700;
+}
+
+.myBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.starDisplay {
+  margin-top: var(--space-sm);
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.star {
+  font-size: 2rem;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.star:hover:not(.starDisabled) {
+  transform: scale(1.2);
+}
+
+.starFilled {
+  color: #ffca28;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.starEmpty {
+  color: #e0e0e0;
+}
+
+.starDisabled {
+  cursor: default;
+}
+
+.starDisabledText {
+  color: #888;
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  font-style: italic;
+  margin-top: 8px;
+}
+
+.submitSection {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.8);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 60;
+  backdrop-filter: blur(10px);
+}
+
+.submitBtn {
+  background: var(--chalk-blue);
+  color: white;
+  border: none;
+  font-family: var(--font-sketch);
+  font-size: 1.8rem;
+  padding: var(--space-md) var(--space-xl);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+  transition: transform 0.2s, background-color 0.2s;
+  min-width: 300px;
+}
+
+.submitBtnReady {
+  background: var(--chalk-green);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.submitBtn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+.hintText {
+  color: #ccc;
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  margin-top: var(--space-sm);
+}
+
+.waitingText {
+  color: var(--chalk-yellow);
+  font-family: var(--font-sketch);
+  font-size: 1.8rem;
+}

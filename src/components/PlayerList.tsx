@@ -47,14 +47,22 @@ export default function PlayerList() {
                     ? styles.drawing
                     : player.hasGuessed
                       ? styles.guessed
-                      : ''
+                      : (gameState.state === 'allDrawing' || gameState.state === 'spyDrawing') && gameState.galleryReadyIds?.includes(player.id)
+                        ? styles.guessed
+                        : (gameState.state === 'voting' || gameState.state === 'spyVoting') && gameState.galleryVotedIds?.includes(player.id)
+                          ? styles.guessed
+                          : ''
                 }`}
               >
-                {player.isDrawing
-                  ? '🎨 Рисует'
-                  : player.hasGuessed
-                    ? '✅ Угадал'
-                    : ''}
+                {(gameState.state === 'allDrawing' || gameState.state === 'spyDrawing') && gameState.galleryReadyIds?.includes(player.id)
+                  ? '☑️ Готов'
+                  : (gameState.state === 'voting' || gameState.state === 'spyVoting') && gameState.galleryVotedIds?.includes(player.id)
+                    ? '☑️ Проголосовал'
+                    : player.isDrawing
+                      ? '🎨 Рисует'
+                      : player.hasGuessed
+                        ? '✅ Угадал'
+                        : ''}
               </div>
             </div>
             <span className={styles.score}>{player.score}</span>

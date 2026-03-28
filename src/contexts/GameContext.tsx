@@ -1,5 +1,16 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { useSocket } from './SocketContext';
+
+export type GameMode = 'classic' | 'gallery' | 'spy' | 'telephone' | 'speed' | 'reveal';
+
+export const MODE_NAMES: Record<GameMode, string> = {
+  classic: 'Классика',
+  gallery: 'Оценка',
+  spy: 'Шпион',
+  telephone: 'Телефон',
+  speed: 'Быстрый раунд',
+  reveal: 'Угадай по частям',
+};
 
 export interface Player {
   id: string;
@@ -11,6 +22,8 @@ export interface Player {
   isDrawing: boolean;
   isHost: boolean;
   connected: boolean;
+  guessedAt: number;
+  isEliminated?: boolean;
 }
 
 export interface ChatMessage {
@@ -36,9 +49,49 @@ export interface WordEntry {
   category: string;
 }
 
+export interface GuessOrderEntry {
+  playerId: string;
+  playerName: string;
+  position: number;
+  score: number;
+  timeElapsed: number;
+}
+
+export interface RoundEndData {
+  word: string;
+  category?: string;
+  players: Player[];
+  scoreDeltas?: Record<string, number>;
+  guessOrder?: GuessOrderEntry[];
+  mode?: GameMode;
+  // Gallery
+  voteCounts?: Record<string, number>;
+  // Spy
+  spyId?: string;
+  spyIds?: string[];
+  spyName?: string;
+  spyCaught?: boolean;
+  spiesWin?: boolean;
+  isGuessingPhase?: boolean;
+  isMatchEnd?: boolean;
+  // Telephone
+  telephoneChain?: Array<{
+    playerId: string;
+    playerName: string;
+    type: 'draw' | 'guess';
+    dataUrl?: string;
+    text?: string;
+  }>;
+  // Speed
+  speedWordsGuessed?: number;
+  speedDrawerName?: string;
+  speedPlayerStats?: Record<string, { wordsGuessed: number; playerName: string }>;
+}
+
 export interface GameState {
   id: string;
-  state: 'waiting' | 'choosing' | 'drawing' | 'roundEnd' | 'gameEnd';
+  state: string;
+  mode: GameMode;
   players: Player[];
   currentRound: number;
   totalRounds: number;
@@ -52,8 +105,28 @@ export interface GameState {
     rounds: number;
     drawTime: number;
     chooseTime: number;
+    mode: GameMode;
+    wordBankIds: string[];
+    spyCount?: number;
   };
   drawActions: DrawAction[];
+  speedWordsGuessed?: number;
+  revealProgress?: number;
+  galleryReadyIds?: string[];
+  galleryVotedIds?: string[];
+}
+
+export interface GalleryDrawing {
+  playerId: string;
+  playerName: string;
+  dataUrl: string;
+}
+
+export interface WordBankSummary {
+  id: string;
+  name: string;
+  wordCount: number;
+  categoryCount: number;
 }
 
 interface GameContextType {
@@ -64,17 +137,35 @@ interface GameContextType {
   roomId: string;
   wordChoices: WordEntry[];
   isDrawer: boolean;
+  roundEndData: RoundEndData | null;
   setMyPlayerName: (name: string) => void;
-  createRoom: (name: string) => Promise<{ success: boolean; roomId?: string; error?: string }>;
+  createRoom: (name: string, settings?: any) => Promise<{ success: boolean; roomId?: string; error?: string }>;
   joinRoom: (roomId: string, name: string) => Promise<{ success: boolean; error?: string }>;
   leaveRoom: () => void;
   startGame: () => void;
   chooseWord: (word: string) => void;
   sendGuess: (text: string) => void;
   sendDraw: (action: DrawAction) => void;
+  sendDrawBatch: (actions: DrawAction[]) => void;
   clearCanvas: () => void;
   undoDraw: () => void;
   updateSettings: (settings: any) => void;
+  fetchWordBanks: () => Promise<WordBankSummary[]>;
+  galleryDrawings: GalleryDrawing[];
+  submitGalleryDrawing: (dataUrl: string) => void;
+  submitGalleryVote: (scores: Record<string, number>) => void;
+  // Spy Mode
+  spyRole?: 'spy' | 'player';
+  spyWord?: string;
+  submitSpyVote: (suspectId: string) => void;
+  // Telephone Mode
+  telephoneWord?: string;
+  telephoneImage?: string;
+  submitTelephoneDrawing: (dataUrl: string) => void;
+  submitTelephoneGuess: (text: string) => void;
+  // Reveal Mode
+  revealDrawing: string;
+  revealDrawWord: string;
 }
 
 const GameContext = createContext<GameContextType>({
@@ -85,6 +176,7 @@ const GameContext = createContext<GameContextType>({
   roomId: '',
   wordChoices: [],
   isDrawer: false,
+  roundEndData: null,
   setMyPlayerName: () => {},
   createRoom: async () => ({ success: false }),
   joinRoom: async () => ({ success: false }),
@@ -93,9 +185,19 @@ const GameContext = createContext<GameContextType>({
   chooseWord: () => {},
   sendGuess: () => {},
   sendDraw: () => {},
+  sendDrawBatch: () => {},
   clearCanvas: () => {},
   undoDraw: () => {},
   updateSettings: () => {},
+  fetchWordBanks: async () => [],
+  galleryDrawings: [],
+  submitGalleryDrawing: () => {},
+  submitGalleryVote: () => {},
+  submitSpyVote: () => {},
+  submitTelephoneDrawing: () => {},
+  submitTelephoneGuess: () => {},
+  revealDrawing: '',
+  revealDrawWord: '',
 });
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
@@ -108,8 +210,25 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   });
   const [roomId, setRoomId] = useState('');
   const [wordChoices, setWordChoices] = useState<WordEntry[]>([]);
+  const [roundEndData, setRoundEndData] = useState<RoundEndData | null>(null);
+  const [galleryDrawings, setGalleryDrawings] = useState<GalleryDrawing[]>([]);
 
-  const isDrawer = gameState?.drawerId === myPlayerId;
+  // Spy Mode State
+  const [spyRole, setSpyRole] = useState<'spy' | 'player'>();
+  const [spyWord, setSpyWord] = useState<string>();
+
+  // Telephone Mode State
+  const [telephoneWord, setTelephoneWord] = useState<string>();
+  const [telephoneImage, setTelephoneImage] = useState<string>();
+
+  // Reveal Mode State
+  const [revealDrawing, setRevealDrawing] = useState<string>(''); // base64 image
+  const [revealDrawWord, setRevealDrawWord] = useState<string>(''); // word for drawer in revealDraw
+
+  const myPlayer = gameState?.players.find((p) => p.id === myPlayerId);
+  const isDrawer = gameState?.drawerId === 'all'
+    ? Boolean(myPlayer?.isDrawing)
+    : gameState?.drawerId === myPlayerId;
 
   useEffect(() => {
     if (myPlayerName) {
@@ -124,22 +243,72 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     socket.on('game-state', (state: GameState) => {
       setGameState(state);
+      // Clear round-end data whenever we leave result screens
+      if (state.state !== 'roundEnd' && state.state !== 'gameEnd') {
+        setRoundEndData(null);
+      }
+
+      // Keep voting drawings only while actually voting
+      if (state.state !== 'voting' && state.state !== 'spyVoting') {
+        setGalleryDrawings([]);
+      }
+
+      // Clear reveal drawing when leaving reveal phases
+      if (state.state !== 'revealing' && state.state !== 'revealDraw') {
+        setRevealDrawing('');
+        setRevealDrawWord('');
+      }
     });
 
     socket.on('chat-message', (msg: ChatMessage) => {
       setMessages((prev) => [...prev.slice(-99), msg]);
     });
 
+    socket.on('chat-cleared', () => {
+      setMessages([]);
+    });
+
     socket.on('word-choices', (data: { words: WordEntry[]; timeLeft: number }) => {
       setWordChoices(data.words);
     });
 
-    socket.on('round-end', () => {
+    socket.on('round-end', (data: RoundEndData) => {
       setWordChoices([]);
+      setRoundEndData(data);
     });
 
     socket.on('game-end', () => {
       setWordChoices([]);
+      setGalleryDrawings([]);
+    });
+
+    socket.on('gallery-vote-start', (data: { drawings: GalleryDrawing[]; timeLeft: number }) => {
+      setGalleryDrawings(data.drawings);
+    });
+
+    socket.on('spy-role', (data: { role: 'spy' | 'player'; word: string | null }) => {
+      setSpyRole(data.role);
+      setSpyWord(data.word || undefined);
+    });
+
+    socket.on('spy-vote-start', (data: { timeLeft: number; drawings: GalleryDrawing[] }) => {
+      setGalleryDrawings(data.drawings);
+    });
+
+    socket.on('telephone-draw', (data: { word: string; timeLeft: number }) => {
+      setTelephoneWord(data.word);
+    });
+
+    socket.on('telephone-guess', (data: { dataUrl: string; timeLeft: number }) => {
+      setTelephoneImage(data.dataUrl);
+    });
+
+    socket.on('reveal-start', (data: { imageUrl: string; hint: string; category: string; timeLeft: number }) => {
+      setRevealDrawing(data.imageUrl || '');
+    });
+
+    socket.on('reveal-draw-start', (data: { word: string; category: string; timeLeft: number }) => {
+      setRevealDrawWord(data.word);
     });
 
     socket.on('connect', () => {
@@ -149,23 +318,32 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return () => {
       socket.off('game-state');
       socket.off('chat-message');
+      socket.off('chat-cleared');
       socket.off('word-choices');
       socket.off('round-end');
       socket.off('game-end');
+      socket.off('gallery-vote-start');
+      socket.off('spy-role');
+      socket.off('spy-vote-start');
+      socket.off('telephone-draw');
+      socket.off('telephone-guess');
+      socket.off('reveal-start');
+      socket.off('reveal-draw-start');
       socket.off('connect');
     };
   }, [socket]);
 
   const createRoom = useCallback(
-    async (name: string): Promise<{ success: boolean; roomId?: string; error?: string }> => {
+    async (name: string, settings?: any): Promise<{ success: boolean; roomId?: string; error?: string }> => {
       if (!socket) return { success: false, error: 'Нет соединения' };
 
       return new Promise((resolve) => {
-        socket.emit('create-room', { playerName: name }, (response: any) => {
+        socket.emit('create-room', { playerName: name, settings }, (response: any) => {
           if (response.success) {
             setRoomId(response.roomId);
             setMyPlayerId(response.player.id);
             setMessages([]);
+            setRoundEndData(null);
             resolve({ success: true, roomId: response.roomId });
           } else {
             resolve({ success: false, error: response.error });
@@ -192,6 +370,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
               setRoomId(response.roomId);
               setMyPlayerId(response.player.id);
               setMessages([]);
+              setRoundEndData(null);
               if (response.state) setGameState(response.state);
               resolve({ success: true });
             } else {
@@ -211,6 +390,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setMessages([]);
     setRoomId('');
     setWordChoices([]);
+    setRoundEndData(null);
   }, [socket]);
 
   const startGame = useCallback(() => {
@@ -243,15 +423,31 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [socket]
   );
 
+  const sendDrawBatch = useCallback(
+    (actions: DrawAction[]) => {
+      if (!socket || actions.length === 0) return;
+      socket.emit('draw-batch', actions);
+    },
+    [socket]
+  );
+
   const clearCanvas = useCallback(() => {
     if (!socket) return;
-    socket.emit('clear-canvas');
-  }, [socket]);
+    if (gameState?.state === 'allDrawing' || gameState?.state === 'chainDraw' || gameState?.state === 'spyDrawing' || gameState?.state === 'revealDraw') {
+      window.dispatchEvent(new Event('local-clear'));
+    } else {
+      socket.emit('clear-canvas');
+    }
+  }, [socket, gameState?.state]);
 
   const undoDraw = useCallback(() => {
     if (!socket) return;
-    socket.emit('undo-draw');
-  }, [socket]);
+    if (gameState?.state === 'allDrawing' || gameState?.state === 'chainDraw' || gameState?.state === 'spyDrawing' || gameState?.state === 'revealDraw') {
+      window.dispatchEvent(new Event('local-undo'));
+    } else {
+      socket.emit('undo-draw');
+    }
+  }, [socket, gameState?.state]);
 
   const updateSettings = useCallback(
     (settings: any) => {
@@ -261,9 +457,58 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [socket]
   );
 
+  const fetchWordBanks = useCallback(
+    async (): Promise<WordBankSummary[]> => {
+      if (!socket) return [];
+      return new Promise((resolve) => {
+        socket.emit('get-word-banks', (response: { banks: WordBankSummary[] }) => {
+          resolve(response.banks);
+        });
+      });
+    },
+    [socket]
+  );
+
+  const submitGalleryDrawing = useCallback((dataUrl: string) => {
+    if (!socket) return;
+    socket.emit('gallery-submit', { dataUrl });
+  }, [socket]);
+
+  const submitGalleryVote = useCallback(
+    (scores: Record<string, number>) => {
+      if (!socket) return;
+      socket.emit('gallery-vote', { scores });
+    },
+    [socket]
+  );
+
+  const submitSpyVote = useCallback(
+    (suspectId: string) => {
+      if (!socket) return;
+      socket.emit('spy-vote', { suspectId });
+    },
+    [socket]
+  );
+
+  const submitTelephoneDrawing = useCallback(
+    (dataUrl: string) => {
+      if (!socket) return;
+      socket.emit('telephone-submit-drawing', { dataUrl });
+    },
+    [socket]
+  );
+
+  const submitTelephoneGuess = useCallback(
+    (text: string) => {
+      if (!socket) return;
+      socket.emit('telephone-submit-guess', { text });
+    },
+    [socket]
+  );
+
   return (
     <GameContext.Provider
-      value={{
+      value={useMemo(() => ({
         gameState,
         messages,
         myPlayerId,
@@ -271,6 +516,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         roomId,
         wordChoices,
         isDrawer,
+        roundEndData,
         setMyPlayerName,
         createRoom,
         joinRoom,
@@ -279,10 +525,57 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         chooseWord,
         sendGuess,
         sendDraw,
+        sendDrawBatch,
         clearCanvas,
         undoDraw,
         updateSettings,
-      }}
+        fetchWordBanks,
+        galleryDrawings,
+        submitGalleryDrawing,
+        submitGalleryVote,
+        spyRole,
+        spyWord,
+        submitSpyVote,
+        telephoneWord,
+        telephoneImage,
+        submitTelephoneDrawing,
+        submitTelephoneGuess,
+        revealDrawing,
+        revealDrawWord,
+      }), [
+        gameState,
+        messages,
+        myPlayerId,
+        myPlayerName,
+        roomId,
+        wordChoices,
+        isDrawer,
+        roundEndData,
+        createRoom,
+        joinRoom,
+        leaveRoom,
+        startGame,
+        chooseWord,
+        sendGuess,
+        sendDraw,
+        sendDrawBatch,
+        clearCanvas,
+        undoDraw,
+        updateSettings,
+        fetchWordBanks,
+        galleryDrawings,
+        submitGalleryDrawing,
+        submitGalleryVote,
+        spyRole,
+        spyWord,
+        submitSpyVote,
+        telephoneWord,
+        telephoneImage,
+        submitTelephoneDrawing,
+        submitTelephoneGuess,
+        revealDrawing,
+        revealDrawWord,
+      ])}
     >
       {children}
     </GameContext.Provider>
